@@ -14,4 +14,5 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-phosphor \
   ##OEROOT##/meta-aspeed \
   ##OEROOT##/meta-evb/meta-evb-aspeed/meta-evb-ast2600 \
+  ##OEROOT##/meta-security/meta-integrity \
   "
