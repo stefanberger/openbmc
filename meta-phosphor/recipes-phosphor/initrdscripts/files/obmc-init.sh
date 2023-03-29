@@ -126,6 +126,92 @@ try_wget() {
 	fi
 }
 
+# If securityfs is available and 'no_ima' is not found in $optfile then
+# - load IMA and EVM keys
+# - activate EVM if an EVM key was loaded
+# - load the IMA policy; in case an appraise policy is used adjust PATH so that
+#   signed executables from $rodir are used rather than the ones from the
+#   initrd
+#
+# This function requires $rodir to be available.
+activate_ima_evm() {
+	if ! grep -w "securityfs" /proc/filesystems >/dev/null ||
+	     grep -w no_ima "${optfile}" >/dev/null
+	then
+		return
+	fi
+
+	mount -t securityfs securityfs /sys/kernel/security
+
+	for kt in ima evm
+	do
+		if test -r "${rodir}/etc/keys/x509_${kt}.der"
+		then
+			LD_LIBRARY_PATH=${rodir}/usr/lib \
+			  ${rodir}/bin/keyctl padd asymmetric '' \
+			    %keyring:.${kt} \
+			    < "${rodir}/etc/keys/x509_${kt}.der" >/dev/null \
+			  && echo "Successfully loaded key onto .${kt} keyring"
+		fi
+	done
+
+	# Activate EVM if .evm keyring exists and is not empty
+	if test -w /sys/kernel/security/evm -a \
+		-n "$(grep ' .evm:' /proc/keys)" -a \
+		-z "$(grep ' .evm: empty' /proc/keys)"
+	then
+		# EVM key loaded, activate it
+		evm_act=2147483650  # $((0x80000002))
+		if echo "${evm_act}" > /sys/kernel/security/evm
+		then
+			printf "Activated EVM: $(cat /sys/kernel/security/evm) [ activated with 0x%x ]\n" $evm_act
+		fi
+	fi
+
+	# Load IMA policy
+	ima_policy="/${rodir}/etc/ima/ima-policy"
+
+	if test -w /sys/kernel/security/ima/policy -a -r "${ima_policy}"
+	then
+		load_ima_policy=0
+
+		# If a signed policy is required ...
+		if grep -q -E "^appraise func=POLICY_CHECK" "${ima_policy}"
+		then
+			# ... check that .ima exists and is not empty
+			if test  -n "$(grep ' .ima:' /proc/keys)" -a \
+				 -z "$(grep ' .ima: empty' /proc/keys)"
+			then
+				load_ima_policy=1
+			fi
+		else
+			# no signed policy: load it in any case
+			load_ima_policy=1
+		fi
+
+		if test ${load_ima_policy} = 1
+		then
+			# If an appraise policy is going to be activated
+			# then use executables from ${rodir}
+			if grep -q \
+				-E "appraise .*func=(MMAP_CHECK|BPRM_CHECK)" \
+				"${ima_policy}"
+			then
+				# Use the signed versions of libraries
+				export LD_LIBRARY_PATH="/${rodir}/lib:/root/${rodir}/lib"
+				mount --bind /${rodir}/lib/ld-linux-armhf.so.3 \
+						/lib/ld-linux-armhf.so.3
+				# Use the signed version of busybox
+				mount --bind /${rodir}/bin/busybox.nosuid \
+						/bin/busybox.nosuid
+			fi
+			echo "${ima_policy}" > /sys/kernel/security/ima/policy
+		fi
+	fi
+
+	umount /sys/kernel/security
+}
+
 debug_takeover() {
 	echo "$@"
 
@@ -374,6 +460,8 @@ then
 fi
 
 mount "$rodev" $rodir -t $rofst -o $roopts
+
+activate_ima_evm
 
 if test -x "$rodir$fsck"
 then
