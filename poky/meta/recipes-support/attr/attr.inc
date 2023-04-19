@@ -20,9 +20,10 @@ SRC_URI = "${SAVANNAH_GNU_MIRROR}/attr/${BP}.tar.gz \
 
 inherit ptest update-alternatives autotools gettext
 
-PACKAGES =+ "lib${BPN}"
+PACKAGES =+ "lib${BPN} ${BPN}-tools"
 
 FILES:lib${BPN} = "${libdir}/lib*${SOLIBS}"
+FILES:${BPN}-tools = "${bindir}/*attr*"
 
 ALTERNATIVE_PRIORITY = "100"
 ALTERNATIVE:${PN} = "setfattr"
