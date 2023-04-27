@@ -37,4 +37,7 @@ DISTRO_FEATURES:append = " integrity"
 # The following policy enforces IMA & EVM signatures
 # IMA_EVM_POLICY = "${ASPEED_INTEGRITY_DIR}/conf/ima_policy_appraise_all"
 
+# Useful debugging tools
+# IMAGE_INSTALL:append = " attr-tools"
+
 require conf/machine/include/obmc-bsp-common.inc
