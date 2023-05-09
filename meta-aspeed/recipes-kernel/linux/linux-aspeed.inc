@@ -18,6 +18,8 @@ SRC_URI += " \
                 'file://ubi/ubi.scc file://ubi/ubi.cfg', '', d)} \
              ${@bb.utils.contains('DISTRO_FEATURES', \
                 'ima', 'file://ima/ima-squashfs.cfg', '', d)} \
+             ${@bb.utils.contains('DISTRO_FEATURES', \
+                'ima', 'file://ima/0001-ovl-Increment-iversion-upon-file-changes.patch', '', d)} \
            "
 
 LINUX_VERSION_EXTENSION ?= "-${SRCREV}"
