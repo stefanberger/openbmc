@@ -16,6 +16,8 @@ SRC_URI += " \
              ${@bb.utils.contains_any('DISTRO_FEATURES', \
                 'obmc-static-norootfs obmc-ubi-fs', \
                 'file://ubi/ubi.scc file://ubi/ubi.cfg', '', d)} \
+             ${@bb.utils.contains('DISTRO_FEATURES', \
+                'ima', 'file://ima/ima-fs.cfg', '', d)} \
            "
 
 LINUX_VERSION_EXTENSION ?= "-${SRCREV}"
