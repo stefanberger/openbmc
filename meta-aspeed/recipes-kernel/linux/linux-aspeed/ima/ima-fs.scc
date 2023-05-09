@@ -1,0 +1,3 @@
+define KFEATURE_DESCRIPTION "Enable xattrs in filesystem for IMA signatures"
+
+kconf non-hardware ima-fs.cfg
