@@ -18,6 +18,13 @@ SRC_URI += " \
                 'file://ubi/ubi.scc file://ubi/ubi.cfg', '', d)} \
              ${@bb.utils.contains('DISTRO_FEATURES', \
                 'ima', 'file://ima/ima-fs.cfg file://ima/ima-appraise.cfg', '', d)} \
+             ${@bb.utils.contains('DISTRO_FEATURES', \
+                'ima', \
+                'file://ima/0001-fs-uninline-inode_query_iversion.patch ' \
+                'file://ima/0002-fs-clarify-when-the-i_version-counter-must-be-update.patch ' \
+                'file://ima/0003-vfs-plumb-i_version-handling-into-struct-kstat.patch ' \
+                'file://ima/0001-IMA-use-vfs_getattr_nosec-to-get-the-i_version.patch ', \
+                '', d)} \
            "
 
 LINUX_VERSION_EXTENSION ?= "-${SRCREV}"
