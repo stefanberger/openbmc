@@ -1,0 +1,117 @@
+From c5bc1b3ff35ae321d018d0c4ba66b062e4fb1e05 Mon Sep 17 00:00:00 2001
+From: Jeff Layton <jlayton@kernel.org>
+Date: Fri, 16 Sep 2022 09:37:51 -0400
+Subject: [PATCH 1/3] fs: uninline inode_query_iversion
+
+Reviewed-by: NeilBrown <neilb@suse.de>
+Reviewed-by: Jan Kara <jack@suse.cz>
+Reviewed-by: Christian Brauner <brauner@kernel.org>
+Signed-off-by: Jeff Layton <jlayton@kernel.org>
+---
+ fs/libfs.c               | 36 ++++++++++++++++++++++++++++++++++++
+ include/linux/iversion.h | 38 ++------------------------------------
+ 2 files changed, 38 insertions(+), 36 deletions(-)
+
+diff --git a/fs/libfs.c b/fs/libfs.c
+index aada4e7c8713..17ecc47696e1 100644
+--- a/fs/libfs.c
++++ b/fs/libfs.c
+@@ -1582,3 +1582,39 @@ bool inode_maybe_inc_iversion(struct inode *inode, bool force)
+ 	return true;
+ }
+ EXPORT_SYMBOL(inode_maybe_inc_iversion);
++
++/**
++ * inode_query_iversion - read i_version for later use
++ * @inode: inode from which i_version should be read
++ *
++ * Read the inode i_version counter. This should be used by callers that wish
++ * to store the returned i_version for later comparison. This will guarantee
++ * that a later query of the i_version will result in a different value if
++ * anything has changed.
++ *
++ * In this implementation, we fetch the current value, set the QUERIED flag and
++ * then try to swap it into place with a cmpxchg, if it wasn't already set. If
++ * that fails, we try again with the newly fetched value from the cmpxchg.
++ */
++u64 inode_query_iversion(struct inode *inode)
++{
++	u64 cur, new;
++
++	cur = inode_peek_iversion_raw(inode);
++	do {
++		/* If flag is already set, then no need to swap */
++		if (cur & I_VERSION_QUERIED) {
++			/*
++			 * This barrier (and the implicit barrier in the
++			 * cmpxchg below) pairs with the barrier in
++			 * inode_maybe_inc_iversion().
++			 */
++			smp_mb();
++			break;
++		}
++
++		new = cur | I_VERSION_QUERIED;
++	} while (!atomic64_try_cmpxchg(&inode->i_version, &cur, new));
++	return cur >> I_VERSION_QUERIED_SHIFT;
++}
++EXPORT_SYMBOL(inode_query_iversion);
+diff --git a/include/linux/iversion.h b/include/linux/iversion.h
+index e27bd4f55d84..6755d8b4f20b 100644
+--- a/include/linux/iversion.h
++++ b/include/linux/iversion.h
+@@ -234,42 +234,6 @@ inode_peek_iversion(const struct inode *inode)
+ 	return inode_peek_iversion_raw(inode) >> I_VERSION_QUERIED_SHIFT;
+ }
+ 
+-/**
+- * inode_query_iversion - read i_version for later use
+- * @inode: inode from which i_version should be read
+- *
+- * Read the inode i_version counter. This should be used by callers that wish
+- * to store the returned i_version for later comparison. This will guarantee
+- * that a later query of the i_version will result in a different value if
+- * anything has changed.
+- *
+- * In this implementation, we fetch the current value, set the QUERIED flag and
+- * then try to swap it into place with a cmpxchg, if it wasn't already set. If
+- * that fails, we try again with the newly fetched value from the cmpxchg.
+- */
+-static inline u64
+-inode_query_iversion(struct inode *inode)
+-{
+-	u64 cur, new;
+-
+-	cur = inode_peek_iversion_raw(inode);
+-	do {
+-		/* If flag is already set, then no need to swap */
+-		if (cur & I_VERSION_QUERIED) {
+-			/*
+-			 * This barrier (and the implicit barrier in the
+-			 * cmpxchg below) pairs with the barrier in
+-			 * inode_maybe_inc_iversion().
+-			 */
+-			smp_mb();
+-			break;
+-		}
+-
+-		new = cur | I_VERSION_QUERIED;
+-	} while (!atomic64_try_cmpxchg(&inode->i_version, &cur, new));
+-	return cur >> I_VERSION_QUERIED_SHIFT;
+-}
+-
+ /*
+  * For filesystems without any sort of change attribute, the best we can
+  * do is fake one up from the ctime:
+@@ -283,6 +247,8 @@ static inline u64 time_to_chattr(struct timespec64 *t)
+ 	return chattr;
+ }
+ 
++u64 inode_query_iversion(struct inode *inode);
++
+ /**
+  * inode_eq_iversion_raw - check whether the raw i_version counter has changed
+  * @inode: inode to check
+-- 
+2.37.3
+
