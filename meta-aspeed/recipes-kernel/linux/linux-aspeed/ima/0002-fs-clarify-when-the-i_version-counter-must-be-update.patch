@@ -1,0 +1,55 @@
+From a3bb710383cbca2a0f1f4e5a1c7ef8dde14eff95 Mon Sep 17 00:00:00 2001
+From: Jeff Layton <jlayton@kernel.org>
+Date: Mon, 22 Aug 2022 09:04:04 -0400
+Subject: [PATCH 2/3] fs: clarify when the i_version counter must be updated
+
+The i_version field in the kernel has had different semantics over
+the decades, but NFSv4 has certain expectations. Update the comments
+in iversion.h to describe when the i_version must change.
+
+Cc: Colin Walters <walters@verbum.org>
+Cc: NeilBrown <neilb@suse.de>
+Cc: Trond Myklebust <trondmy@hammerspace.com>
+Cc: Dave Chinner <david@fromorbit.com>
+Reviewed-by: Christian Brauner <brauner@kernel.org>
+Signed-off-by: Jeff Layton <jlayton@kernel.org>
+---
+ include/linux/iversion.h | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/iversion.h b/include/linux/iversion.h
+index 6755d8b4f20b..f174ff1b59ee 100644
+--- a/include/linux/iversion.h
++++ b/include/linux/iversion.h
+@@ -9,8 +9,26 @@
+  * ---------------------------
+  * The change attribute (i_version) is mandated by NFSv4 and is mostly for
+  * knfsd, but is also used for other purposes (e.g. IMA). The i_version must
+- * appear different to observers if there was a change to the inode's data or
+- * metadata since it was last queried.
++ * appear larger to observers if there was an explicit change to the inode's
++ * data or metadata since it was last queried.
++ *
++ * An explicit change is one that would ordinarily result in a change to the
++ * inode status change time (aka ctime). i_version must appear to change, even
++ * if the ctime does not (since the whole point is to avoid missing updates due
++ * to timestamp granularity). If POSIX or other relevant spec mandates that the
++ * ctime must change due to an operation, then the i_version counter must be
++ * incremented as well.
++ *
++ * Making the i_version update completely atomic with the operation itself would
++ * be prohibitively expensive. Traditionally the kernel has updated the times on
++ * directories after an operation that changes its contents. For regular files,
++ * the ctime is usually updated before the data is copied into the cache for a
++ * write. This means that there is a window of time when an observer can
++ * associate a new timestamp with old file contents. Since the purpose of the
++ * i_version is to allow for better cache coherency, the i_version must always
++ * be updated after the results of the operation are visible. Updating it before
++ * and after a change is also permitted. (Note that no filesystems currently do
++ * this. Fixing that is a work-in-progress).
+  *
+  * Observers see the i_version as a 64-bit number that never decreases. If it
+  * remains the same since it was last checked, then nothing has changed in the
+-- 
+2.37.3
+
