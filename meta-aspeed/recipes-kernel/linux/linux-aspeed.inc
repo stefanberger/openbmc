@@ -27,5 +27,7 @@ PV = "${LINUX_VERSION}+git${SRCPV}"
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
+require ${@bb.utils.contains('DISTRO_FEATURES', 'ima', 'recipes-kernel/linux/linux_ima.inc', '', d)}
+
 # From 5.6+ the COPYING file changed
 LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
