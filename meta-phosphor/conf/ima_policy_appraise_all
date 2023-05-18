@@ -1,0 +1,4 @@
+# Appraise libraries
+appraise func=MMAP_CHECK mask=MAY_EXEC appraise_type=imasig
+# Appraise executables
+appraise func=BPRM_CHECK appraise_type=imasig
