@@ -16,4 +16,5 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-aspeed \
   ##OEROOT##/meta-openpower \
   ##OEROOT##/meta-ibm \
+  ##OEROOT##/meta-security/meta-integrity \
   "
