@@ -17,3 +17,27 @@ BB_DISKMON_DIRS ??= "\
     HALT,${SSTATE_DIR},100M,1K \
     HALT,/tmp,10M,1K"
 CONF_VERSION = "2"
+
+DISTRO_FEATURES:append = " integrity"
+
+# Enable IMA kernel support
+# DISTRO_FEATURES:append = " ima"
+
+# Once ima-evm-rootfs is activated we need the keys below for signing
+# executables and libraries
+# IMAGE_CLASSES += "ima-evm-rootfs"
+
+# Modify the following variables to point to your own directory and keys
+# The CA must be able to verify the x509 cert:
+#    openssl verify -CAfile ${IMA_EVM_ROOT_CA} ${IMA_EVM_X509}
+#
+# IMA_EVM_KEY_DIR = "${INTEGRITY_BASE}/data/debug-keys"
+# IMA_EVM_PRIVKEY = "${IMA_EVM_KEY_DIR}/privkey_ima.pem"
+# IMA_EVM_X509 = "${IMA_EVM_KEY_DIR}/x509_ima.der"
+# IMA_EVM_ROOT_CA = "${IMA_EVM_KEY_DIR}/ima-local-ca.pem"
+
+# The following policy enforces IMA & EVM signatures
+# IMA_EVM_POLICY = "${ASPEED_INTEGRITY_DIR}/conf/ima_policy_appraise_all"
+
+# Useful debugging tools
+# IMAGE_INSTALL:append = " attr"
