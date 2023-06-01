@@ -18,6 +18,110 @@ kgetopt ()
     [ -n "$_optval" ] && echo "$_optval"
 }
 
+# If securityfs is available and 'no-ima' is not found in /proc/cmdline then
+# - load IMA and EVM keys
+# - activate EVM if an EVM key was loaded
+# - load the IMA policy; in case an IMA appraisal policy is loaded apply
+#   the file signatures
+#
+activate_ima_evm() {
+    if ! grep -wq securityfs /proc/filesystems ||
+         grep -wq no-ima /proc/cmdline
+    then
+        return
+    fi
+
+    # If not running on QEMU: if secure boot is not enabled then also do not
+    # enable IMA & EVM
+    if test -z "$(dmesg | grep -i qemu)"
+    then
+        mount /sys/kernel/debug /sys/kernel/debug -t debugfs
+        sb=$(grep 1 /sys/kernel/debug/aspeed/sbc/secure_boot)
+        umount /sys/kernel/debug
+        if test -z "$sb"
+        then
+            return
+        fi
+    fi
+
+    mount -t securityfs securityfs /sys/kernel/security
+
+    for kt in ima evm
+    do
+        if test -r "$rodir/etc/keys/x509_$kt.der"
+        then
+            keyctl padd asymmetric "" %keyring:.$kt \
+                < "$rodir/etc/keys/x509_$kt.der" >/dev/null \
+            && echo "Successfully loaded key onto .$kt keyring"
+        fi
+    done
+
+    # Activate EVM if .evm keyring exists and is not empty
+    if test -w /sys/kernel/security/evm && \
+        grep -sq " .evm:" /proc/keys && \
+        grep -sq " .evm: empty" /proc/keys
+    then
+        # EVM key loaded, activate it
+        evm_act=0x80000002
+        if echo "$evm_act" > /sys/kernel/security/evm
+        then
+            printf "Activated EVM: $(cat /sys/kernel/security/evm) [ activated with 0x%x ]\n" $evm_act
+        else
+            printf "Error: Failed to activate EVM with 0x%x\n" $evm_act
+        fi
+    fi
+
+    # Load IMA policy
+    ima_policy="$rodir/etc/ima/ima-policy"
+
+    if test -w /sys/kernel/security/ima/policy -a -r "$ima_policy"
+    then
+        load_ima_policy=false
+
+        # If a signed policy is required ...
+        if grep -q -E "^appraise func=POLICY_CHECK" "$ima_policy"
+        then
+            # ... check that .ima exists and is not empty
+            if grep -sq " .ima:" /proc/keys && \
+               grep -sq " .ima: empty" /proc/keys
+            then
+                load_ima_policy=true
+            else
+                echo "Error: Not loading IMA appraise policy since there is no key on .ima"
+            fi
+        else
+            # no signed policy: load it in any case
+            load_ima_policy=true
+        fi
+
+        if $load_ima_policy
+        then
+            # If an appraise policy is going to be activated then use signed
+            # busybox and libraries from $rodir
+            if grep -q \
+                -E "appraise .*func=(MMAP_CHECK|BPRM_CHECK)" \
+                "$ima_policy"
+            then
+                # A few files need to be signed once appraisal policy is active
+                grep \
+                  -E "^(/usr/bin/busybox|/usr/lib/lib|/usr/lib/ld)" \
+                    /ima_file_signatures |
+                  sed "s|^/usr||" > /run/ima_file_signatures
+
+                while read -r line; do
+                    fn=${line%% ima:*}
+                    sig=${line#* ima:}
+                    setfattr -n security.ima -v "$sig" "$fn"
+                done < /run/ima_file_signatures
+                rm -f /run/ima_file_signatures
+            fi
+            if ! echo "$ima_policy" > /sys/kernel/security/ima/policy; then
+                echo "Error: Failed to load IMA policy"
+            fi
+        fi
+    fi
+}
+
 fslist="proc sys dev run"
 rodir=/mnt/rofs
 mmcdev="/dev/mmcblk0"
@@ -104,6 +208,8 @@ mkdir -p $rodir/var/persist/etc $rodir/var/persist/etc-work $rodir/var/persist/h
 mount overlay $rodir/etc -t overlay -o lowerdir=$rodir/etc,upperdir=$rodir/var/persist/etc,workdir=$rodir/var/persist/etc-work
 
 init="$(kgetopt init /sbin/init)"
+
+activate_ima_evm
 
 for f in $fslist; do
     mount --move "$f" "$rodir/$f"
