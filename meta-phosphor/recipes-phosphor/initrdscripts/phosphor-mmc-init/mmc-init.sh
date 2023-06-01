@@ -17,6 +17,95 @@ get_root() {
     [ -n "$root" ] && echo "$root"
 }
 
+# If securityfs is available then
+# - load IMA and EVM keys
+# - activate EVM if an EVM key was loaded
+# - load the IMA policy; in case an appraise policy is used adjust PATH so that
+#   signed executables from $rodir are used rather than the ones from the
+#   initrd
+#
+# This function requires $rodir to be available.
+activate_ima_evm() {
+	if ! grep -w "securityfs" /proc/filesystems >/dev/null
+	then
+		return
+	fi
+
+	mount -t securityfs securityfs /sys/kernel/security
+
+	for kt in ima evm
+	do
+		if test -r "$rodir/etc/keys/x509_$kt.der"
+		then
+			LD_LIBRARY_PATH=$rodir/usr/lib \
+			  "$rodir/bin/keyctl" padd asymmetric '' \
+			    %keyring:.$kt \
+			    < "$rodir/etc/keys/x509_$kt.der" >/dev/null \
+			  && echo "Successfully loaded key onto .$kt keyring"
+		fi
+	done
+
+	# Activate EVM if .evm keyring exists and is not empty
+	if test -w /sys/kernel/security/evm -a \
+		-n "$(grep ' .evm:' /proc/keys)" -a \
+		-z "$(grep ' .evm: empty' /proc/keys)"
+	then
+		# EVM key loaded, activate it
+		evm_act=0x80000002
+		if echo "$evm_act" > /sys/kernel/security/evm
+		then
+			printf "Activated EVM: $(cat /sys/kernel/security/evm) [ activated with 0x%x ]\n" $evm_act
+		else
+			echo "Error: Failed to activate EVM"
+		fi
+	fi
+
+	# Load IMA policy
+	ima_policy="$rodir/etc/ima/ima-policy"
+
+	if test -w /sys/kernel/security/ima/policy -a -r "$ima_policy"
+	then
+		load_ima_policy=false
+
+		# If a signed policy is required ...
+		if grep -q -E "^appraise func=POLICY_CHECK" "$ima_policy"
+		then
+			# ... check that .ima exists and is not empty
+			if test  -n "$(grep ' .ima:' /proc/keys)" -a \
+				 -z "$(grep ' .ima: empty' /proc/keys)"
+			then
+				load_ima_policy=true
+			fi
+		else
+			# no signed policy: load it in any case
+			load_ima_policy=true
+		fi
+
+		if $load_ima_policy
+		then
+			# If an appraise policy is going to be activated
+			# then use executables from $rodir
+			if grep -q \
+				-E "appraise .*func=(MMAP_CHECK|BPRM_CHECK)" \
+				"$ima_policy"
+			then
+				# Use the signed versions of libraries
+				export LD_LIBRARY_PATH="/$rodir/lib:/root/$rodir/lib"
+				mount --bind "/$rodir/lib/ld-linux-armhf.so.3" \
+						/lib/ld-linux-armhf.so.3
+				# Use the signed version of busybox
+				mount --bind "/$rodir/bin/busybox.nosuid" \
+						/bin/busybox.nosuid
+				# Use the signed versions of gpiofind, fsck.ext4, etc.
+				export PATH="$rodir/usr/bin:$rodir/usr/sbin:$PATH"
+			fi
+			echo "$ima_policy" > /sys/kernel/security/ima/policy
+		fi
+	fi
+
+	umount /sys/kernel/security
+}
+
 fslist="proc sys dev run"
 rodir=/mnt/rofs
 mmcdev="/dev/mmcblk0"
@@ -64,6 +153,9 @@ mkdir -p $rodir
 if ! mount /dev/disk/by-partlabel/"$(get_root)" $rodir -t ext4 -o ro; then
     /bin/sh
 fi
+
+# Activate IMA and EVM as soon as rodir is mounted
+activate_ima_evm
 
 # Determine if a factory reset has been requested
 mkdir -p /var/lock
