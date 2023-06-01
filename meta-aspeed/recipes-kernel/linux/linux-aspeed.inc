@@ -20,6 +20,7 @@ SRC_URI += " \
                 'ima', 'file://ima/ima-fs.cfg', '', d)} \
              ${@bb.utils.contains('DISTRO_FEATURES', \
                 'ima', \
+                'file://ima/0001-KEYS-asymmetric-Copy-sig-and-digest-in-public_key_ve.patch ' \
                 'file://ima/0001-fs-uninline-inode_query_iversion.patch ' \
                 'file://ima/0002-fs-clarify-when-the-i_version-counter-must-be-update.patch ' \
                 'file://ima/0003-vfs-plumb-i_version-handling-into-struct-kstat.patch ' \
