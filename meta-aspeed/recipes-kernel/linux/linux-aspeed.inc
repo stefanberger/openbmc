@@ -18,6 +18,8 @@ SRC_URI += " \
                 'file://ubi/ubi.scc file://ubi/ubi.cfg', '', d)} \
              ${@bb.utils.contains('DISTRO_FEATURES', \
                 'ima', 'file://ima/ima-fs.scc file://ima/ima-fs.cfg', '', d)} \
+             ${@bb.utils.contains('DISTRO_FEATURES', \
+                'ima', 'file://ima/ima-appraise.scc file://ima/ima-appraise.cfg', '', d)} \
            "
 
 LINUX_VERSION_EXTENSION ?= "-${SRCREV}"
