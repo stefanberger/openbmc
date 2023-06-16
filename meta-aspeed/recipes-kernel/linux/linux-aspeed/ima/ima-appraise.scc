@@ -1,0 +1,3 @@
+define KFEATURE_DESCRIPTION "Enable more IMA appraisal rules"
+
+kconf non-hardware ima-appraise.cfg
