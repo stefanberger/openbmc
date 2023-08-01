@@ -66,7 +66,7 @@ RDEPENDS:${PN}-updater += " \
     bash \
     virtual-obmc-image-manager \
     ${@bb.utils.contains('PACKAGECONFIG', 'verify_signature', 'phosphor-image-signing', '', d)} \
-    ${@bb.utils.contains('PACKAGECONFIG', 'mmc_layout', 'e2fsprogs-e2fsck', '', d)} \
+    ${@bb.utils.contains('PACKAGECONFIG', 'mmc_layout', 'e2fsprogs-e2fsck e2fsprogs-mke2fs', '', d)} \
 "
 
 RPROVIDES:${PN}-version += " \
