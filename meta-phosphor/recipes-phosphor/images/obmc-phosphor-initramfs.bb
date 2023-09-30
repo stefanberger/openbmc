@@ -12,6 +12,7 @@ export IMAGE_BASENAME = "obmc-phosphor-initramfs"
 BAD_RECOMMENDATIONS += "busybox-syslog"
 
 PACKAGE_INSTALL = "${VIRTUAL-RUNTIME_base-utils} base-passwd ${ROOTFS_BOOTSTRAP_INSTALL} ${INIT_PACKAGE}"
+PACKAGE_INSTALL += "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' keyutils', '', d)}"
 PACKAGE_INSTALL:remove = "shadow"
 
 # Init scripts
