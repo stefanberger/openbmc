@@ -12,8 +12,15 @@ export IMAGE_BASENAME = "obmc-phosphor-initramfs"
 BAD_RECOMMENDATIONS += "busybox-syslog"
 
 PACKAGE_INSTALL = "${VIRTUAL-RUNTIME_base-utils} base-passwd ${ROOTFS_BOOTSTRAP_INSTALL} ${INIT_PACKAGE}"
-PACKAGE_INSTALL += "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' keyutils', '', d)}"
+PACKAGE_INSTALL += "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' keyutils attr', '', d)}"
 PACKAGE_INSTALL:remove = "shadow"
+
+# When IMA is enabled sign the files in the initrd and have the signatures
+# stored in a file
+IMAGE_CLASSES:append = \
+  "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' ima-evm-rootfs', '', d)}"
+
+IMA_FILE_SIGNATURES_FILE = "/ima_file_signatures"
 
 # Init scripts
 INIT_PACKAGE = "obmc-phosphor-initfs"
