@@ -1,0 +1,30 @@
+From 3b658589dff201c026644c42af21de94444cb51e Mon Sep 17 00:00:00 2001
+From: Stefan Berger <stefanb@linux.ibm.com>
+Date: Wed, 25 Oct 2023 09:42:44 -0400
+Subject: [PATCH] ast2600: Change bootargs to use rootfstype=tmpfs
+
+To be able to write IMA file signatures into files of the initrd, the
+initrd needs to be run in tmpfs. Therefore, use rootfstype=tmpfs as
+Linux boot command line parameter.
+
+Signed-off-by: Stefan Berger <stefanb@linux.ibm.com>
+---
+ configs/ast2600_openbmc_spl_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configs/ast2600_openbmc_spl_defconfig b/configs/ast2600_openbmc_spl_defconfig
+index 1b3b86bb94..0af0ba649e 100644
+--- a/configs/ast2600_openbmc_spl_defconfig
++++ b/configs/ast2600_openbmc_spl_defconfig
+@@ -28,7 +28,7 @@ CONFIG_FIT_SIGNATURE=y
+ CONFIG_SPL_FIT_SIGNATURE=y
+ CONFIG_SPL_LOAD_FIT=y
+ CONFIG_USE_BOOTARGS=y
+-CONFIG_BOOTARGS="console=ttyS4,115200n8 root=/dev/ram rw"
++CONFIG_BOOTARGS="console=ttyS4,115200n8 rootfstype=tmpfs rw "
+ CONFIG_USE_BOOTCOMMAND=y
+ CONFIG_BOOTCOMMAND="run bootspi"
+ CONFIG_SYS_CONSOLE_ENV_OVERWRITE=y
+-- 
+2.34.1
+
