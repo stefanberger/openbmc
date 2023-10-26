@@ -16,6 +16,7 @@ SRC_URI += " \
              ${@bb.utils.contains_any('DISTRO_FEATURES', \
                 'obmc-static-norootfs obmc-ubi-fs', \
                 'file://ubi/ubi.scc file://ubi/ubi.cfg', '', d)} \
+             file://ima/fix_rootfstype=tmpfs.patch \
            "
 
 LINUX_VERSION_EXTENSION ?= "-${SRCREV}"

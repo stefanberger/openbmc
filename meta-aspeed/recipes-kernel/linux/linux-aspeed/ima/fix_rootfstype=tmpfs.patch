@@ -1,0 +1,47 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 5/5] fix rootfstype=tmpfs
+From: Rob Landley <rob@landley.net>
+Date: Tue, 21 Feb 2023 15:04:15 -0600
+Message-Id: <8244c75f-445e-b15b-9dbf-266e7ca666e2@landley.net>
+To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Wolfram Sang <wsa+renesas@sang-engineering.com>
+In-Reply-To: <b455394f-9faa-1f1a-f171-0b9d5e9ada35@landley.net>
+References: <b455394f-9faa-1f1a-f171-0b9d5e9ada35@landley.net>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Wire up rootfstype=tmpfs to force rootfs to be tmpfs even when you specify root=
+
+Initramfs automatically uses tmpfs (if available) when you DON'T specify a
+root= fallback root to mount over initramfs, but some people can't NOT do
+that for some reason (old bootloaders), so let rootfstype=tmpfs override it.
+
+My original code tried to do this 10 years ago but got the test wrong,
+and nobody's corrected it since, so here you go...
+
+Signed-off-by: Rob Landley <rob@landley.net>
+
+See https://lkml.iu.edu/hypermail/linux/kernel/2207.3/06939.html
+---
+ init/do_mounts.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/init/do_mounts.c b/init/do_mounts.c
+index 811e94daf0a8..01d80fb828fd 100644
+--- a/init/do_mounts.c
++++ b/init/do_mounts.c
+@@ -665,7 +665,7 @@ struct file_system_type rootfs_fs_type = {
+ 
+ void __init init_rootfs(void)
+ {
+-	if (IS_ENABLED(CONFIG_TMPFS) && !saved_root_name[0] &&
+-		(!root_fs_names || strstr(root_fs_names, "tmpfs")))
++	if (IS_ENABLED(CONFIG_TMPFS) && (!root_fs_names ? !saved_root_name[0] :
++		!!strstr(root_fs_names, "tmpfs")))
+ 		is_tmpfs = true;
+ }
+
+-- 
+2.40.1
