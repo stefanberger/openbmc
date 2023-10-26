@@ -20,6 +20,7 @@ SRC_URI += " \
                 'ima', 'file://ima/ima-fs.scc file://ima/ima-fs.cfg', '', d)} \
              ${@bb.utils.contains('DISTRO_FEATURES', \
                 'ima', 'file://ima/ima-appraise.scc file://ima/ima-appraise.cfg', '', d)} \
+             file://ima/0001-init-Default-to-tmpfs-even-if-root-is-given.patch \
            "
 
 LINUX_VERSION_EXTENSION ?= "-${SRCREV}"

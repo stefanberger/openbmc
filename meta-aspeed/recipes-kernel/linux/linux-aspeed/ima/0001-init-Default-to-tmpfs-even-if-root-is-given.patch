@@ -1,0 +1,25 @@
+From 4ab2733f8837a9c629e4f7963a171c32a88aa667 Mon Sep 17 00:00:00 2001
+From: Stefan Berger <stefanb@linux.ibm.com>
+Date: Thu, 26 Oct 2023 15:39:07 -0400
+Subject: [PATCH] init: Default to tmpfs even if root= is given
+
+---
+ init/do_mounts.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/init/do_mounts.c b/init/do_mounts.c
+index 5dfd30b13f48..6567cf5807ee 100644
+--- a/init/do_mounts.c
++++ b/init/do_mounts.c
+@@ -510,7 +510,7 @@ struct file_system_type rootfs_fs_type = {
+ 
+ void __init init_rootfs(void)
+ {
+-	if (IS_ENABLED(CONFIG_TMPFS) && !saved_root_name[0] &&
++	if (IS_ENABLED(CONFIG_TMPFS) &&
+ 		(!root_fs_names || strstr(root_fs_names, "tmpfs")))
+ 		is_tmpfs = true;
+ }
+-- 
+2.40.1
+
