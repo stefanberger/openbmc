@@ -8,4 +8,4 @@ bootmmc=run setmmcargs; ext4load mmc 0:${bootpart} ${loadaddr} fitImage && bootm
 bootside=a
 bootsidecmd=if test ${bootside} = b; then run bootb; run boota; else run boota; run bootb; fi
 loadaddr=0x83000000
-setmmcargs=setenv bootargs ${origbootargs} rootwait root=PARTLABEL=${rootfs}
+setmmcargs=setenv bootargs ${origbootargs} rootwait root=PARTLABEL=${rootfs} rootfstype=tmpfs
