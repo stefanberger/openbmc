@@ -31,4 +31,4 @@ IMA_EVM_X509 ?= \
 # attr provides getfattr/setfattr & tar allows installation of tools with
 # signatures
 OBMC_IMAGE_EXTRA_INSTALL:append = \
-  "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' attr tar', '', d)}"
+  "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' attr tar auditd audispd-plugins', '', d)}"
