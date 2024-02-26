@@ -90,6 +90,20 @@ valid signature again:
     Report bugs to <xz@tukaani.org>.
 
 
+Debugging with Audit Log
+========================
+
+Failures to execute applications or libraries are audited by auditd and the
+audit log can be used to determine the reason why applications did not run. The
+above failure to run ``xzmore`` leaves the following audit log entry:
+
+    root@p10bmc:~# grep type=INTEGRITY /var/log/audit/audit.log
+    type=INTEGRITY_DATA msg=audit(1708967244.805:47): pid=1725 uid=0 auid=4294967295
+    ses=4294967295 op=appraise_data cause=invalid-signature comm="sh"
+    name="/usr/bin/xzmore" dev="mmcblk0p4" ino=1137 res=0 errno=0UID="root"
+    AUID="unset"
+
+
 Disabling IMA & EVM on a system
 ===============================
 
