@@ -31,7 +31,19 @@ UBOOT_ENV_TXT:df-phosphor-mmc = "u-boot-env-ast2600.txt"
 do_compile:append() {
     if [ -n "${UBOOT_ENV}" ]
     then
+        MY_UBOOT_ENV_TXT=${WORKDIR}/${UBOOT_ENV_TXT}.adjusted
+        cp ${WORKDIR}/${UBOOT_ENV_TXT} ${MY_UBOOT_ENV_TXT}
+
+        # append ima_appraise=log if OPENBMC_ENABLE_IMAEVM == log
+        if [ "${@bb.utils.contains('OPENBMC_ENABLE_IMAEVM', 'log', 'yes', '', d)}" = "yes" ]
+        then
+            if ! grep -q ima_appraise= ${MY_UBOOT_ENV_TXT}
+            then
+                sed -i "s|^bootargs=\(.*\)|bootargs=\1 ima_appraise=log|" ${MY_UBOOT_ENV_TXT}
+            fi
+        fi
+
         # Generate redundant environment image
-        ${B}/tools/mkenvimage -r -s ${UBOOT_ENV_SIZE} -o ${WORKDIR}/${UBOOT_ENV_BINARY} ${WORKDIR}/${UBOOT_ENV_TXT}
+        ${B}/tools/mkenvimage -r -s ${UBOOT_ENV_SIZE} -o ${WORKDIR}/${UBOOT_ENV_BINARY} ${MY_UBOOT_ENV_TXT}
     fi
 }
