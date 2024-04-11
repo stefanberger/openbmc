@@ -2,8 +2,12 @@
 # OPENBMC_ENABLE_IMAEVM="enforce"
 
 DISTRO_FEATURES:append = \
-  "${@bb.utils.contains_any('OPENBMC_ENABLE_IMAEVM', 'enforce', \
+  "${@bb.utils.contains_any('OPENBMC_ENABLE_IMAEVM', 'enforce log', \
                             'integrity ima', '', d)}"
+
+KERNEL_FEATURES:append = \
+  "${@bb.utils.contains('OPENBMC_ENABLE_IMAEVM', 'log', \
+                        'features/ima/ima-appraise-bootparam.scc', '', d)}"
 
 IMAGE_CLASSES:append = \
   "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' ima-evm-rootfs', '', d)}"
