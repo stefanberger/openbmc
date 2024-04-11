@@ -29,6 +29,14 @@ make them available with the following variables in ``conf/local.conf``:
 Instruction for how to generate these keys are provided in the documentation
 in ``meta-security/meta-integrity/README.md``.
 
+A system built in enforce mode will enforce file signatures and prevent
+unsigned executables from running. The system can also be built in log-only
+mode where unsigned executables can be run and the fact that an unsigned
+application was started is only audited.
+
+    OPENBMC_ENABLE_IMAEVM = "log"
+
+
 Verification of IMA & EVM enablement
 ====================================
 
