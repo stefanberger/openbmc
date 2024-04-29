@@ -1,3 +1,8 @@
+# Allow overriding the evmctl tool to use. This is useful when a pkcs11 device
+# is used for signing and the pkcs11 client module is not part of the build
+# but available on the host.
+IMA_EVM_EVMCTL ?= "evmctl"
+
 # No default! Either this or IMA_EVM_PRIVKEY/IMA_EVM_X509 have to be
 # set explicitly in a local.conf before activating ima-evm-rootfs.
 # To use the insecure (because public) example keys, use
@@ -82,14 +87,14 @@ ima_evm_sign_rootfs () {
     export EVMCTL_KEY_PASSWORD=${IMA_EVM_EVMCTL_KEY_PASSWORD}
 
     bbnote "IMA/EVM: Signing root filesystem at ${IMAGE_ROOTFS} with key ${IMA_EVM_PRIVKEY}"
-    evmctl sign ${IMA_EVM_IMA_XATTR_OPT} ${evmctl_param} --portable -a sha256 \
+    ${IMA_EVM_EVMCTL} sign ${IMA_EVM_IMA_XATTR_OPT} ${evmctl_param} --portable -a sha256 \
         --key "${IMA_EVM_PRIVKEY}" ${IMA_EVM_PRIVKEY_KEYID_OPT} -r "${IMAGE_ROOTFS}"
 
     # check signing key and signature verification key
     if [ "${IMA_EVM_IMA_XATTR_OPT}" = "--imasig" ]; then
-        evmctl ima_verify ${evmctl_param} --key "${IMA_EVM_X509}" "${IMAGE_ROOTFS}/lib/libc.so.6" || exit 1
+        ${IMA_EVM_EVMCTL} ima_verify ${evmctl_param} --key "${IMA_EVM_X509}" "${IMAGE_ROOTFS}/lib/libc.so.6" || exit 1
     fi
-    evmctl verify     ${evmctl_param} --key "${IMA_EVM_X509}" "${IMAGE_ROOTFS}/lib/libc.so.6" || exit 1
+    ${IMA_EVM_EVMCTL} verify     ${evmctl_param} --key "${IMA_EVM_X509}" "${IMAGE_ROOTFS}/lib/libc.so.6" || exit 1
 
     # Optionally install custom policy for loading by systemd.
     if [ "${IMA_EVM_POLICY}" ]; then
@@ -98,7 +103,7 @@ ima_evm_sign_rootfs () {
         install "${IMA_EVM_POLICY}" ./${sysconfdir}/ima/ima-policy
 
         bbnote "IMA/EVM: Signing IMA policy with key ${IMA_EVM_PRIVKEY}"
-        evmctl sign --imasig ${evmctl_param} --portable -a sha256 \
+        ${IMA_EVM_EVMCTL} sign --imasig ${evmctl_param} --portable -a sha256 \
           --key "${IMA_EVM_PRIVKEY}" ${IMA_EVM_PRIVKEY_KEYID_OPT} "${IMAGE_ROOTFS}/etc/ima/ima-policy"
     fi
 
