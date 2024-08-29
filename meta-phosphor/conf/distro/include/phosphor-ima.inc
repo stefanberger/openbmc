@@ -36,3 +36,14 @@ IMA_EVM_X509 ?= \
 # signatures
 OBMC_IMAGE_EXTRA_INSTALL:append = \
   "${@bb.utils.contains('DISTRO_FEATURES', 'ima', ' attr tar auditd audispd-plugins', '', d)}"
+
+setup_auditd_rules() {
+    DESTDIR=${IMAGE_ROOTFS}${sysconfdir}/audit/rules.d
+    DEST=${DESTDIR}/no-bpf.rules
+    install -d ${DESTDIR}
+    echo "-a exclude,always -F msgtype=BPF" > ${DEST}
+}
+
+ROOTFS_POSTPROCESS_COMMAND += \
+  "${@bb.utils.contains('OBMC_IMAGE_EXTRA_INSTALL', 'auditd', \
+                        'setup_auditd_rules;', '', d)}"
