@@ -1,0 +1,3 @@
+define KFEATURE_DESCRIPTION "Enable strict kernel built-in module IMA appraisal policy rules"
+
+kconf non-hardware ima-appraise-strict-policy-module.cfg
