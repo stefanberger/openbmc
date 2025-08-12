@@ -129,6 +129,11 @@ OpenBMC can now be built with the following entries in ``conf/local.conf``:
     IMA_EVM_X509 = "/production/x509_ima.der"
     IMA_EVM_ROOT_CA = "/production/ima-local-ca.pem"
 
+Note that when using bigger keys, such as RSA-4096, the following line must
+be added to extend the block size of ext4 to 2048 bytes:
+
+    EXTRA_IMAGECMD:ext4 = "-i 4096 -b 2048"
+
 Note that similar scripts for RSA keys can be found in the ima-evm-utils
 project in the
 [examples directory](https://github.com/linux-integrity/ima-evm-utils/tree/next-testing/examples).
